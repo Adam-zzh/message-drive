@@ -1,0 +1,73 @@
+package com.sfbest.financial.eventstore.msg;
+
+import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.BeanFactory;
+import org.springframework.beans.factory.BeanFactoryAware;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.transaction.TransactionManager;
+
+import javax.annotation.PostConstruct;
+import javax.sql.DataSource;
+import java.io.IOException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+@Configuration
+@ConditionalOnBean(EventStoreConfigurer.class)
+public class CusomerEventAutoConfig implements BeanFactoryAware{
+
+    @Autowired
+    EventStoreConfigurer configurer;
+
+    BeanFactory beanFactroy;
+
+    @Bean
+    public MysqlFmsMessageStore createMessageStore(FmsEventProperties properties, DataSource ds){
+        return configurer.createMessageStore();
+    }
+
+    @Bean
+    public IPublisher publisher(MysqlFmsMessageStore messageStore) throws ClassNotFoundException, IllegalAccessException, InstantiationException {
+      return configurer.publisher(messageStore);
+    }
+
+    @Bean
+    public SubcriberStore subcriberStore(){
+        return new SubcriberStore();
+    }
+
+    @Bean
+    public  MessageHandler messageHandler(MysqlFmsMessageStore messageStore,SubcriberStore subcriberStore) throws ClassNotFoundException, IllegalAccessException, InstantiationException {
+       return configurer.messageHandler(messageStore,subcriberStore);
+    }
+
+
+    @Bean
+    public EventDistributionFactoryBean distribution( MysqlFmsMessageStore messageStore, MessageHandler messageHandler) throws Exception {
+
+        return configurer.distribution(messageStore,messageHandler);
+    }
+
+
+    @Scheduled(fixedDelay=2000)
+    public void eventTask()  {
+        try {
+            IEventDistribution distribution = (IEventDistribution)beanFactroy.getBean("distribution");
+            distribution.distribute();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    @Override
+    public void setBeanFactory(BeanFactory beanFactory) throws BeansException {
+        this.beanFactroy=beanFactory;
+    }
+}
