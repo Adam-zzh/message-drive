@@ -1,0 +1,13 @@
+server:
+  port: 8099
+  application:
+    name: event-message
+logging:
+  level:
+    com:
+      sfbest:
+        financial:
+          eventstore: debug
+
+
+

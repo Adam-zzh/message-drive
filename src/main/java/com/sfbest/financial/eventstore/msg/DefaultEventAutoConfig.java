@@ -5,6 +5,7 @@ import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
@@ -43,7 +44,12 @@ public class DefaultEventAutoConfig implements BeanFactoryAware {
     @PostConstruct
     public void afterPropertiesSet() throws Exception {
         if(ds == null){
-            throw new Exception("con not open datasouce");
+            // throw new Exception("con not open datasouce");
+            ds = DataSourceBuilder.create()
+                    .url("jdbc:mysql://localhost/myblog")
+                    .username("root")
+                    .password("123456")
+                    .build();
         }
         tms = new DataSourceTransactionManager(ds);
         if(taskExecutor == null){
